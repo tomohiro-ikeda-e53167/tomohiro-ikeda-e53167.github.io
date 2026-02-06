@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UTM座標抽出 (高精度追跡)</title>
+    <style>
+        body { font-family: sans-serif; padding: 15px; background-color: #f0f2f5; color: #333; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        
+        /* 精度表示エリアを独立させたわよ */
+        .accuracy-display {
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 15px;
+            font-weight: bold;
+            transition: background-color 0.5s ease;
+        }
+        .acc-low { background-color: #ffcdd2; color: #c62828; } /* 精度が低いとき */
+        .acc-high { background-color: #c8e6c9; color: #2e7d32; } /* 精度が良いとき */
+        
+        .status-box { background: #333; color: #eee; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 13px; margin-bottom: 15px; line-height: 1.4; }
+        
+        #log { border: 1px solid #ddd; padding: 10px; height: 200px; overflow-y: auto; font-size: 13px; border-radius: 8px; background: #fff; }
+        .log-item { border-bottom: 1px solid #eee; padding: 5px 0; }
+        
+        button { padding: 15px; cursor: pointer; border: none; border-radius: 8px; font-weight: bold; width: 100%; margin-bottom: 10px; font-size: 16px; }
+        .btn-record { background: #e91e63; color: white; }
+        .btn-record:disabled { background: #ccc; }
+        .btn-csv { background: #4caf50; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="accDisplay" class="accuracy-display acc-low">
+            GPS起動中...
+        </div>
+
+        <div class="status-box" id="status">
+            緯度: ---<br>経度: ---
+        </div>
+
+        <button class="btn-record" id="recordBtn" onclick="recordCurrentPosition()" disabled>今の座標を記録！</button>
+        <button class="btn-csv" id="downloadBtn" onclick="downloadCSV()" disabled>CSV保存</button>
+
+        <div id="log"></div> </div>
+
+    <script>
+        let locationData = [];
+        let currentBestPosition = null;
+
+        function latLngToUTM(lat, lng) {
+            const a = 6378137.0; const f = 1 / 298.257223563; const k0 = 0.9996;
+            let zone = Math.floor((lng + 180) / 6) + 1;
+            const lon0 = (zone - 1) * 6 - 180 + 3;
+            const latRad = lat * Math.PI / 180; const lonRad = lng * Math.PI / 180;
+            const lon0Rad = lon0 * Math.PI / 180; const e = Math.sqrt(f * (2 - f));
+            const e2 = e * e; const ep2 = e2 / (1 - e2);
+            const N = a / Math.sqrt(1 - e2 * Math.sin(latRad) ** 2);
+            const T = Math.tan(latRad) ** 2; const C = ep2 * Math.cos(latRad) ** 2;
+            const A = (lonRad - lon0Rad) * Math.cos(latRad);
+            const M = a * ((1 - e2 / 4 - 3 * (e2**2) / 64 - 5 * (e2**3) / 256) * latRad - (3 * e2 / 8 + 3 * (e2**2) / 32 + 45 * (e2**3) / 1024) * Math.sin(2 * latRad) + (15 * (e2**2) / 256 + 45 * (e2**3) / 1024) * Math.sin(4 * latRad) - (35 * (e2**3) / 3072) * Math.sin(6 * latRad));
+            const easting = k0 * N * (A + (1 - T + C) * (A**3) / 6 + (5 - 18 * T + T**2 + 72 * C - 58 * ep2) * (A**5) / 120) + 500000;
+            const northing = k0 * (M + N * Math.tan(latRad) * ((A**2) / 2 + (5 - T + 9 * C + 4 * (C**2)) * (A**4) / 24 + (61 - 58 * T + T**2 + 600 * C - 330 * ep2) * (A**6) / 720));
+            return { zone, easting: easting.toFixed(3), northing: northing.toFixed(3) };
+        }
+
+        function startTracking() {
+            const status = document.getElementById('status');
+            const accDisplay = document.getElementById('accDisplay');
+            const recordBtn = document.getElementById('recordBtn');
+
+            navigator.geolocation.watchPosition((position) => {
+                currentBestPosition = position;
+                const acc = Math.round(position.coords.accuracy);
+                
+                // 精度表示の更新
+                accDisplay.innerText = `現在の精度: ±${acc}m`;
+                if (acc <= 15) {
+                    accDisplay.className = "accuracy-display acc-high";
+                } else {
+                    accDisplay.className = "accuracy-display acc-low";
+                }
+
+                status.innerHTML = `緯度: ${position.coords.latitude.toFixed(6)}<br>経度: ${position.coords.longitude.toFixed(6)}`;
+                recordBtn.disabled = false;
+            }, (error) => {
+                accDisplay.innerText = "GPSエラーよ！";
+                status.innerText = error.message;
+            }, { enableHighAccuracy: true, maximumAge: 0 });
+        }
+
+        function recordCurrentPosition() {
+            if (!currentBestPosition) return;
+
+            const utm = latLngToUTM(currentBestPosition.coords.latitude, currentBestPosition.coords.longitude);
+            const time = new Date().toLocaleTimeString();
+            const acc = Math.round(currentBestPosition.coords.accuracy);
+
+            locationData.push({ time, lat: currentBestPosition.coords.latitude, lng: currentBestPosition.coords.longitude, ...utm });
+
+            const log = document.getElementById('log');
+            const item = document.createElement('div');
+            item.className = 'log-item';
+            item.innerHTML = `<b>[${time}]</b> E:${utm.easting}, N:${utm.northing} (±${acc}m)`;
+            log.prepend(item); // 最新を上に表示するわね
+            
+            document.getElementById('downloadBtn').disabled = false;
+        }
+
+        function downloadCSV() {
+            let csv = "Time,Lat,Lng,Zone,Easting,Northing\n";
+            locationData.forEach(d => csv += `${d.time},${d.lat},${d.lng},${d.zone},${d.easting},${d.northing}\n`);
+            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "survey_data.csv";
+            link.click();
+        }
+
+        window.onload = startTracking;
+    </script>
+</body>
+</html>
