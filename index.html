@@ -43,8 +43,8 @@
             Latitude: ---<br>Longitude: ---
         </div>
 
-        <button class="btn-record btn-cp" id="recordBtnCP" onclick="recordCP()" disabled>Record CP</button>
-        <button class="btn-record btn-sp" id="recordBtnSP" onclick="recordSP()" disabled>Record SP</button>
+        <button class="btn-record btn-cp" id="recordBtnCP" onclick="recordCP()" disabled>Record as CP</button>
+        <button class="btn-record btn-sp" id="recordBtnSP" onclick="recordSP()" disabled>Record as SP</button>
         <button class="btn-csv" id="downloadBtn" onclick="downloadCSV()" disabled>Save CSV</button>
 
         <div id="log"></div> </div>
@@ -157,7 +157,8 @@
         function downloadCSV() {
             let csv = "Point ID,Easting,Northing,Elevation,Type,Remarks\n";
             locationData.forEach(d => csv += `${d.id},${d.easting},${d.northing},${d.elevation},${d.type},${d.remarks}\n`);
-            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+            const BOM = new Uint8Array([0xEF, 0xBB, 0xBF]);
+            const blob = new Blob([BOM, csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
             link.download = "survey_data.csv";
