@@ -1,4 +1,4 @@
-# tomohiro-ikeda-e53167.github.io
+# UTM座標抽出 for CoordyNavi
 
 ## 1. 概要
 - ブラウザの **GPS（Geolocation API）** を使って現在地（緯度・経度）を継続取得します（追跡）。
