@@ -31,9 +31,11 @@
         .btn-sp { background: #9c27b0; }
         .btn-record:disabled { background: #ccc; }
         .btn-csv { background: #4caf50; color: white; }
+        .app-version { background: #1f2937; color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: bold; display: block; max-width: 500px; margin: 0 auto 10px; }
     </style>
 </head>
 <body>
+    <div id="appVersion" class="app-version">App Version:</div>
     <div class="container">
         <div id="accDisplay" class="accuracy-display acc-low">
             Initializing GPS...
@@ -50,6 +52,7 @@
         <div id="log"></div> </div>
 
     <script>
+        const APP_VERSION = '0.9.0';
         let locationData = [];
         let currentBestPosition = null;
         let cpIndex = 0;
@@ -96,6 +99,11 @@
                 accDisplay.innerText = "GPS Error: " + error.message;
                 status.innerText = error.message;
             }, { enableHighAccuracy: true, maximumAge: 0 });
+        }
+
+        function setAppVersion() {
+            const el = document.getElementById('appVersion');
+            if (el) el.innerText = `App Version: ${APP_VERSION}`;
         }
 
         function recordCP() {
@@ -165,7 +173,7 @@
             link.click();
         }
 
-        window.onload = startTracking;
+        window.onload = () => { setAppVersion(); startTracking(); };
     </script>
 </body>
 </html>
