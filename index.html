@@ -105,7 +105,7 @@
             const time = new Date().toLocaleTimeString();
             const acc = Math.round(currentBestPosition.coords.accuracy);
             const pointName = `CP${cpIndex}`;
-            const elevation = currentBestPosition.coords.altitude != null ? currentBestPosition.coords.altitude.toFixed(2) : "";
+            const elevation = currentBestPosition.coords.altitude != null ? currentBestPosition.coords.altitude.toFixed(2) : "0.0";
 
             locationData.push({
                 id: pointName,
@@ -113,7 +113,7 @@
                 northing: utm.northing,
                 elevation,
                 type: "CP",
-                remarks: ""
+                remarks: "DATA"
             });
 
             const log = document.getElementById('log');
@@ -133,7 +133,7 @@
             const time = new Date().toLocaleTimeString();
             const acc = Math.round(currentBestPosition.coords.accuracy);
             const pointName = `SP${spIndex}`;
-            const elevation = currentBestPosition.coords.altitude != null ? currentBestPosition.coords.altitude.toFixed(2) : 0;
+            const elevation = currentBestPosition.coords.altitude != null ? currentBestPosition.coords.altitude.toFixed(2) : "0.0";
 
             locationData.push({
                 id: pointName,
